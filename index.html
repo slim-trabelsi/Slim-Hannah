@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ours — A Little World for Two</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Karla:wght@400;500;600&family=Caveat:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     CONFIG NOTE:
+     All editable content lives in the CONFIG object at the bottom
+     of this file, inside the <script> tag. Search for "EDIT ME"
+     to find every place you can personalize this page:
+     names, the day you got together, birthdays, and your letters
+     (most of which can just be a photo of the page itself).
+     ============================================================ */
+
+  :root{
+    --bg: #FFF6F3;
+    --bg-deep: #2B0F16;
+    --paper: #FFFDF8;
+    --rose: #E0536E;
+    --rose-deep: #8C2D42;
+    --gold: #D8A15C;
+    --ink: #3B1F26;
+    --ink-soft: #6E4B52;
+    --line: rgba(140,45,66,0.14);
+    --shadow: 0 20px 50px -25px rgba(140,45,66,0.35);
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Karla', sans-serif;
+    line-height:1.6;
+    overflow-x:hidden;
+  }
+  h1,h2,h3,.display{
+    font-family:'Fraunces', serif;
+    color:var(--rose-deep);
+    font-weight:600;
+    letter-spacing:-0.01em;
+  }
+  .script{ font-family:'Caveat', cursive; }
+  a{color:inherit;}
+  img{max-width:100%; display:block;}
+  section{position:relative; z-index:1;}
+
+  /* ---------- floating hearts background ---------- */
+  #heart-field{
+    position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden;
+  }
+  .bg-heart{
+    position:absolute; bottom:-10%; opacity:0.10; color:var(--rose);
+    animation: floatUp linear infinite;
+  }
+  @keyframes floatUp{
+    0%{ transform:translateY(0) rotate(0deg); opacity:0; }
+    10%{ opacity:0.12; }
+    90%{ opacity:0.10; }
+    100%{ transform:translateY(-115vh) rotate(25deg); opacity:0; }
+  }
+
+  /* ---------- nav dots ---------- */
+  .navdots{
+    position:fixed; right:22px; top:50%; transform:translateY(-50%);
+    display:flex; flex-direction:column; gap:14px; z-index:50;
+  }
+  .navdots a{
+    width:9px; height:9px; border-radius:50%;
+    background:rgba(140,45,66,0.25); display:block; transition:.3s;
+  }
+  .navdots a:hover, .navdots a.active{ background:var(--rose); transform:scale(1.3); }
+  @media (max-width:760px){ .navdots{ display:none; } }
+
+  /* ---------- hero ---------- */
+  .hero{
+    min-height:100vh; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; text-align:center; padding:120px 24px 80px;
+  }
+  .eyebrow{
+    font-family:'Caveat', cursive; font-size:1.5rem; color:var(--rose);
+    margin-bottom:6px;
+  }
+  .hero h1{
+    font-size:clamp(2.6rem, 7vw, 5.2rem); line-height:1.05;
+    font-style:italic;
+  }
+  .hero h1 .amp{ color:var(--gold); font-style:normal; }
+  .hero p.sub{
+    max-width:520px; color:var(--ink-soft); margin-top:18px; font-size:1.05rem;
+  }
+
+  /* the distance thread — signature element */
+  .thread-wrap{
+    margin-top:56px; width:min(680px, 90vw);
+  }
+  .thread{
+    position:relative; display:flex; align-items:center; justify-content:space-between;
+    padding:0 8px;
+  }
+  .thread::before{
+    content:''; position:absolute; left:38px; right:38px; top:50%;
+    height:0; border-top:2px dashed rgba(140,45,66,0.3);
+  }
+  .pin{
+    background:var(--paper); border:1px solid var(--line); border-radius:18px;
+    padding:10px 16px; font-size:0.92rem; font-weight:600; color:var(--rose-deep);
+    box-shadow:var(--shadow); z-index:2; white-space:nowrap;
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+  }
+  .pin .city{ display:flex; align-items:center; }
+  .pin .flag{ margin-right:6px; }
+  .pin .clock{
+    font-family:'Fraunces', serif; font-weight:600; font-size:1rem; color:var(--rose);
+    letter-spacing:0.02em;
+  }
+  .pulse-heart{
+    z-index:2; font-size:1.4rem; color:var(--rose);
+    animation:pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse{ 0%,100%{transform:scale(1);} 50%{transform:scale(1.28);} }
+  .thread-caption{
+    text-align:center; margin-top:14px; font-size:0.9rem; color:var(--ink-soft);
+  }
+  .thread-diff{
+    text-align:center; margin-top:4px; font-size:0.85rem; color:var(--gold); font-weight:600;
+  }
+
+  .counter-row{
+    margin-top:52px; display:flex; gap:28px; flex-wrap:wrap; justify-content:center;
+  }
+  .counter{
+    background:var(--paper); border:1px solid var(--line); border-radius:18px;
+    padding:22px 30px; min-width:130px; box-shadow:var(--shadow);
+  }
+  .counter .num{
+    font-family:'Fraunces', serif; font-size:2.2rem; color:var(--rose);
+    font-weight:600; line-height:1;
+  }
+  .counter .label{
+    margin-top:6px; font-size:0.78rem; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+
+  /* ---------- shared section wrapper ---------- */
+  .section-inner{
+    max-width:960px; margin:0 auto; padding:100px 24px;
+  }
+  .kicker{
+    font-family:'Caveat', cursive; color:var(--rose); font-size:1.35rem;
+  }
+  .section-title{ font-size:clamp(1.8rem,4vw,2.6rem); margin-top:2px; margin-bottom:44px; }
+
+  /* ---------- letters ---------- */
+  #letters{ background:var(--paper); border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+  .letters-grid{ display:grid; gap:22px; }
+  .letter-card{
+    background:var(--bg); border:1px solid var(--line); border-radius:16px;
+    padding:26px 28px; cursor:pointer; transition:.25s; position:relative;
+  }
+  .letter-card:hover{ transform:translateY(-3px); box-shadow:var(--shadow); }
+  .letter-top{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap;}
+  .letter-date{ font-size:0.8rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--gold); font-weight:600;}
+  .letter-from{ font-family:'Caveat', cursive; font-size:1.3rem; color:var(--rose-deep);}
+  .letter-title{ margin-top:8px; font-size:1.25rem; }
+  .letter-preview{ margin-top:8px; color:var(--ink-soft); font-size:0.95rem; }
+  .letter-full{
+    display:none; margin-top:16px; padding-top:16px; border-top:1px dashed var(--line);
+    color:var(--ink); font-size:1rem;
+  }
+  .letter-card.open .letter-full{ display:block; }
+  .letter-card.open .letter-preview{ display:none; }
+  .letter-hint{ margin-top:14px; font-size:0.8rem; color:var(--ink-soft); font-style:italic; }
+
+  /* the scanned/photographed letter itself */
+  .letter-photo-thumb{
+    margin-top:10px; border-radius:10px; overflow:hidden; max-width:220px;
+    box-shadow:var(--shadow); border:1px solid var(--line);
+  }
+  .letter-photo-thumb img{ width:100%; display:block; transition:.3s; }
+  .letter-photo-thumb:hover img{ transform:scale(1.03); }
+  .letter-photo-full{
+    margin-top:14px; border-radius:14px; overflow:hidden; max-width:420px;
+    box-shadow:var(--shadow); border:1px solid var(--line); cursor:zoom-in;
+  }
+  .letter-photo-full img{ width:100%; display:block; }
+  .letter-photo-placeholder{
+    margin-top:10px; width:100%; max-width:260px; aspect-ratio:4/5; border-radius:12px;
+    background:linear-gradient(135deg, #FCE4E9, #F6C8D2); color:var(--rose-deep);
+    display:flex; align-items:center; justify-content:center; flex-direction:column; text-align:center;
+    font-size:0.75rem; padding:12px;
+  }
+  .letter-photo-placeholder span{ font-size:1.6rem; margin-bottom:6px; }
+  .letter-text{ margin-top:14px; white-space:pre-line; }
+
+  .lightbox{
+    position:fixed; inset:0; background:rgba(43,15,22,0.85); display:none;
+    align-items:center; justify-content:center; z-index:100; padding:30px;
+  }
+  .lightbox.show{ display:flex; }
+  .lightbox img{ max-height:85vh; border-radius:12px; }
+  .lightbox .lb-cap{ color:#fff; text-align:center; margin-top:14px; font-family:'Caveat',cursive; font-size:1.4rem;}
+  .lightbox .close{
+    position:absolute; top:24px; right:30px; color:#fff; font-size:2rem; cursor:pointer;
+  }
+
+  /* ---------- countdowns ---------- */
+  #countdowns{ background:var(--bg-deep); color:#F7E7DA; }
+  #countdowns .kicker{ color:var(--gold); }
+  #countdowns h2{ color:#fff; }
+  .cd-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:20px; }
+  .cd-card{
+    background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12);
+    border-radius:18px; padding:26px; text-align:center;
+  }
+  .cd-card .who{ font-family:'Caveat',cursive; font-size:1.4rem; color:var(--gold); }
+  .cd-card .days{ font-family:'Fraunces',serif; font-size:2.6rem; margin-top:6px; color:#fff; }
+  .cd-card .days span{ font-size:1rem; display:block; color:#D8B8B8; margin-top:4px; font-family:'Karla',sans-serif;}
+  .cd-card .date{ margin-top:10px; font-size:0.85rem; color:#D8B8B8; }
+
+  /* ---------- closing ---------- */
+  #closing{ text-align:center; padding:120px 24px; }
+  #closing .script{ font-size:clamp(1.6rem,4vw,2.3rem); color:var(--rose-deep); max-width:620px; margin:0 auto; }
+  #closing .sign{ margin-top:18px; color:var(--ink-soft); font-size:0.95rem; }
+
+  footer{ text-align:center; padding:30px; font-size:0.8rem; color:var(--ink-soft); }
+</style>
+</head>
+<body>
+
+<div id="heart-field"></div>
+
+<nav class="navdots">
+  <a href="#top" class="active"></a>
+  <a href="#letters"></a>
+  <a href="#countdowns"></a>
+  <a href="#closing"></a>
+</nav>
+
+<section class="hero" id="top">
+  <div class="eyebrow">a small private world, just for us</div>
+  <h1 id="hero-names">Name <span class="amp">&amp;</span> Name</h1>
+  <p class="sub" id="hero-sub">Two cities, one time difference, and a Sunday letter that keeps us close.</p>
+
+  <div class="thread-wrap">
+    <div class="thread">
+      <div class="pin" id="pin-a">
+        <span class="city"><span class="flag">🇹🇳</span>Tunisia</span>
+        <span class="clock" id="clock-a">--:--</span>
+      </div>
+      <div class="pulse-heart">♥</div>
+      <div class="pin" id="pin-b">
+        <span class="city"><span class="flag">🇵🇭</span>Philippines</span>
+        <span class="clock" id="clock-b">--:--</span>
+      </div>
+    </div>
+    <div class="thread-caption">the distance is real — the love just doesn't care</div>
+    <div class="thread-diff" id="thread-diff"></div>
+  </div>
+
+  <div class="counter-row">
+    <div class="counter">
+      <div class="num" id="days-together">0</div>
+      <div class="label">days together</div>
+    </div>
+    <div class="counter">
+      <div class="num" id="letters-count">0</div>
+      <div class="label">letters archived</div>
+    </div>
+  </div>
+</section>
+
+<section id="letters">
+  <div class="section-inner">
+    <div class="kicker">every Sunday</div>
+    <h2 class="section-title">Our Letters — The Archive</h2>
+    <div class="letters-grid" id="letters-grid"></div>
+  </div>
+</section>
+
+<section id="countdowns">
+  <div class="section-inner">
+    <div class="kicker">looking forward</div>
+    <h2 class="section-title">What's Coming Up</h2>
+    <div class="cd-grid" id="cd-grid"></div>
+  </div>
+</section>
+
+<section id="closing">
+  <p class="script" id="closing-text">"Wherever you are, that's where home is."</p>
+  <p class="sign" id="closing-sign">— made with love, just for the two of us</p>
+</section>
+
+<footer>This page is private. Not indexed, not shared — just ours.</footer>
+
+<div class="lightbox" id="lightbox">
+  <span class="close" id="lb-close">&times;</span>
+  <div>
+    <img id="lb-img" src="" alt="">
+    <div class="lb-cap" id="lb-cap"></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   EDIT ME — everything below is yours to personalize.
+   ============================================================ */
+const CONFIG = {
+  // ---- Names shown in the hero ----
+  names: { you: "Slim", her: "Hannah" },          // EDIT ME
+  subtitle: "Two cities, one time difference, and a Sunday letter that keeps us close.", // EDIT ME
+
+  // ---- The day you two got together (YYYY-MM-DD) ----
+  togetherSince: "2026-06-19",                       // EDIT ME
+
+  // ---- Birthdays / special dates for the countdown section ----
+  countdowns: [
+    { label: "Your birthday",   who: "Slim",      date: "2003-12-22" }, // EDIT ME (month/day matter most)
+    { label: "Her birthday",    who: "Hannah",  date: "2005-11-06" }, // EDIT ME
+    { label: "Our anniversary", who: "Us",        date: "2026-06-19" }, // EDIT ME
+  ],
+
+  // ---- Letters archive. Add ONE entry per Sunday — new or old, in any order.
+  // The page auto-sorts newest first using "dateISO", so you never have to
+  // worry about where in the list you paste a new one.
+  //
+  // Since most of your letters are photos of handwritten pages, each entry
+  // supports a "photo" (the image of the letter itself). "body" is optional
+  // typed text — use it for a caption, a translation, or leave it "".
+  // If "photo" is empty, a soft placeholder card is shown instead.
+  letters: [
+    {                
+      date: "Sunday",         // EDIT ME — how the date is displayed
+      from: "Slim",
+      title: "A little letter",
+      photo: "",                              // EDIT ME — paste an image URL or base64 string
+      body: ""                                // EDIT ME — optional typed text/caption
+    },
+    {
+      date: "Sunday",
+      from: "Hannah",
+      title: "A little letter ",
+      photo: "",
+      body: ""
+    }
+  ],
+
+  // ---- Closing message ----
+  closingQuote: "\"Wherever you are, that's where home is.\"",
+  closingSign: "— made with love, just for the two of us"
+};
+
+/* ============================================================
+   Below this line is the engine that renders CONFIG. You don't
+   need to touch it unless you want to change how things work.
+   ============================================================ */
+
+// Hero text
+document.getElementById('hero-names').innerHTML =
+  `${CONFIG.names.you} <span class="amp">&amp;</span> ${CONFIG.names.her}`;
+document.getElementById('hero-sub').textContent = CONFIG.subtitle;
+
+// Days together
+function daysSince(dateStr){
+  const start = new Date(dateStr + "T00:00:00");
+  const now = new Date();
+  return Math.max(0, Math.floor((now - start) / 86400000));
+}
+document.getElementById('days-together').textContent = daysSince(CONFIG.togetherSince);
+document.getElementById('letters-count').textContent = CONFIG.letters.length;
+
+// Live clocks — Tunis and the Philippines, plus the time difference between them.
+// Uses real timezones (Africa/Tunis, Asia/Manila) so it's always correct,
+// even if a country changes its clock rules in the future.
+const TZ_A = "Africa/Tunis";     // EDIT ME if you're ever not in Tunisia
+const TZ_B = "Asia/Manila";      // EDIT ME if she's ever not in the Philippines
+
+function getOffsetHours(timeZone, now){
+  const tzString = now.toLocaleString('en-US', { timeZone });
+  const utcString = now.toLocaleString('en-US', { timeZone: 'UTC' });
+  return Math.round((new Date(tzString) - new Date(utcString)) / 3600000);
+}
+
+function updateClocks(){
+  const now = new Date();
+  const fmt = (tz) => now.toLocaleTimeString('en-US', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: true });
+
+  document.getElementById('clock-a').textContent = fmt(TZ_A);
+  document.getElementById('clock-b').textContent = fmt(TZ_B);
+
+  const diff = getOffsetHours(TZ_B, now) - getOffsetHours(TZ_A, now);
+  const sign = diff > 0 ? '+' : '';
+  document.getElementById('thread-diff').textContent =
+    `Philippines is ${sign}${diff}h ahead of Tunisia`;
+}
+updateClocks();
+setInterval(updateClocks, 1000);
+
+// Letters archive — sorted newest first by dateISO, so you can paste
+// a new Sunday's letter anywhere in the CONFIG.letters array
+const lightbox = document.getElementById('lightbox');
+const lbImg = document.getElementById('lb-img');
+const lbCap = document.getElementById('lb-cap');
+
+const lettersGrid = document.getElementById('letters-grid');
+const sortedLetters = [...CONFIG.letters].sort((a, b) => (a.dateISO < b.dateISO ? 1 : -1));
+
+sortedLetters.forEach(letter => {
+  const card = document.createElement('div');
+  card.className = 'letter-card';
+
+  const photoPreviewHTML = letter.photo
+    ? `<div class="letter-photo-thumb"><img src="${letter.photo}" alt="Letter from ${letter.from}, ${letter.date}"></div>`
+    : `<div class="letter-photo-placeholder"><span>✉</span>Photo of this letter not added yet</div>`;
+
+  const photoFullHTML = letter.photo
+    ? `<div class="letter-photo-full" data-full><img src="${letter.photo}" alt="Letter from ${letter.from}, ${letter.date}"></div>`
+    : `<div class="letter-photo-placeholder"><span>✉</span>Add the photo of this letter in CONFIG</div>`;
+
+  const bodyHTML = letter.body ? `<div class="letter-text">${letter.body}</div>` : '';
+
+  card.innerHTML = `
+    <div class="letter-top">
+      <span class="letter-date">${letter.date}</span>
+      <span class="letter-from">from ${letter.from}</span>
+    </div>
+    <div class="letter-title">${letter.title}</div>
+    <div class="letter-preview">${photoPreviewHTML}</div>
+    <div class="letter-full">${photoFullHTML}${bodyHTML}</div>
+    <div class="letter-hint">tap to open / close · tap the photo to zoom</div>
+  `;
+
+  card.addEventListener('click', (e) => {
+    // if the click was on the enlarged photo, zoom instead of collapsing the card
+    if(e.target.closest('[data-full]') && letter.photo){
+      e.stopPropagation();
+      lbImg.src = letter.photo;
+      lbCap.textContent = `${letter.from} · ${letter.date}`;
+      lightbox.classList.add('show');
+      return;
+    }
+    card.classList.toggle('open');
+  });
+
+  lettersGrid.appendChild(card);
+});
+
+document.getElementById('lb-close').addEventListener('click', () => lightbox.classList.remove('show'));
+lightbox.addEventListener('click', (e) => { if(e.target === lightbox) lightbox.classList.remove('show'); });
+
+// Countdowns — always counts to the NEXT occurrence of the date's month/day
+function nextOccurrence(dateStr){
+  const d = new Date(dateStr + "T00:00:00");
+  const now = new Date();
+  let next = new Date(now.getFullYear(), d.getMonth(), d.getDate());
+  if(next < now) next = new Date(now.getFullYear()+1, d.getMonth(), d.getDate());
+  const diff = Math.ceil((next - now) / 86400000);
+  return { days: diff, dateObj: next };
+}
+const cdGrid = document.getElementById('cd-grid');
+CONFIG.countdowns.forEach(item => {
+  const { days, dateObj } = nextOccurrence(item.date);
+  const card = document.createElement('div');
+  card.className = 'cd-card';
+  card.innerHTML = `
+    <div class="who">${item.who}</div>
+    <div class="days">${days}<span>${item.label} · days to go</span></div>
+    <div class="date">${dateObj.toLocaleDateString(undefined,{month:'long', day:'numeric'})}</div>
+  `;
+  cdGrid.appendChild(card);
+});
+
+// Closing
+document.getElementById('closing-text').textContent = CONFIG.closingQuote;
+document.getElementById('closing-sign').textContent = CONFIG.closingSign;
+
+// Floating background hearts
+const field = document.getElementById('heart-field');
+for(let i=0;i<18;i++){
+  const h = document.createElement('div');
+  h.className = 'bg-heart';
+  h.textContent = '♥';
+  h.style.left = Math.random()*100 + 'vw';
+  h.style.fontSize = (12 + Math.random()*22) + 'px';
+  h.style.animationDuration = (14 + Math.random()*14) + 's';
+  h.style.animationDelay = (Math.random()*14) + 's';
+  field.appendChild(h);
+}
+
+// Scroll spy for nav dots
+const sections = ['top','letters','countdowns','closing'].map(id => document.getElementById(id));
+const dots = document.querySelectorAll('.navdots a');
+window.addEventListener('scroll', () => {
+  let idx = 0;
+  sections.forEach((s,i) => { if(window.scrollY + window.innerHeight/2 >= s.offsetTop) idx = i; });
+  dots.forEach((d,i) => d.classList.toggle('active', i===idx));
+});
+</script>
+</body>
+</html>
