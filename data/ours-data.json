@@ -73,15 +73,5 @@
       ]
     }
   ],
-  "series": [
-    {
-      "id": "series-1",
-      "name": "Friends",
-      "cover": "",
-      "episodes": 0,
-      "myRating": 0,
-      "herRating": 0,
-      "review": ""
-    }
-  ]
+  "series": []
 }
