@@ -73,5 +73,15 @@
       ]
     }
   ],
-  "series": []
+  "series": [
+    {
+      "id": "series-1783590484281",
+      "name": "Happiness",
+      "episodes": 1,
+      "review": "",
+      "myRating": 0,
+      "herRating": 0,
+      "cover": "https://raw.githubusercontent.com/slim-trabelsi/Slim-Hannah/main/images/1783590476065-Capture_d__cran_2026-07-09_091436.png"
+    }
+  ]
 }
