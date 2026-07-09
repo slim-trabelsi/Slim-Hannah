@@ -1,0 +1,24 @@
+{
+  "letters": [
+    {
+      "id": "letter-1",
+      "date": "Sunday",
+      "dateISO": "2026-06-21",
+      "from": "Slim",
+      "title": "A little letter",
+      "photos": [],
+      "body": ""
+    }
+  ],
+  "series": [
+    {
+      "id": "series-1",
+      "name": "Friends",
+      "cover": "",
+      "episodes": 0,
+      "myRating": 0,
+      "herRating": 0,
+      "review": ""
+    }
+  ]
+}
