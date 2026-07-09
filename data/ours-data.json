@@ -20,6 +20,19 @@
         "https://raw.githubusercontent.com/slim-trabelsi/Slim-Hannah/main/images/1783589952757-1.jpg",
         "https://raw.githubusercontent.com/slim-trabelsi/Slim-Hannah/main/images/1783589955653-2.jpg"
       ]
+    },
+    {
+      "id": "letter-1783590054615",
+      "from": "Hannah",
+      "title": "Her first letter",
+      "dateISO": "2026-07-03",
+      "date": "vendredi 3 juillet 2026",
+      "body": "",
+      "photos": [
+        "https://raw.githubusercontent.com/slim-trabelsi/Slim-Hannah/main/images/1783590046798-1.jpg",
+        "https://raw.githubusercontent.com/slim-trabelsi/Slim-Hannah/main/images/1783590048805-2.jpg",
+        "https://raw.githubusercontent.com/slim-trabelsi/Slim-Hannah/main/images/1783590050761-3.jpg"
+      ]
     }
   ],
   "series": [
