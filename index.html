@@ -9,11 +9,28 @@
 <style>
   /* ============================================================
      CONFIG NOTE:
-     All editable content lives in the CONFIG object at the bottom
-     of this file, inside the <script> tag. Search for "EDIT ME"
-     to find every place you can personalize this page:
-     names, the day you got together, birthdays, and your letters
-     (most of which can just be a photo of the page itself).
+     Editable content + GitHub settings live in the CONFIG object
+     near the bottom, inside the <script> tag. Search for "EDIT ME".
+
+     HOW STORAGE WORKS NOW:
+     - All data (letters, series, ratings) live in one JSON file in
+       your repo: data/ours-data.json
+     - All photos get uploaded into your repo's images/ folder
+     - Both happen through the GitHub API using a personal access
+       token you paste in once per device (via the "Connect GitHub"
+       button, top-left). The token is saved only in that browser's
+       localStorage — it is never written into the page itself.
+
+     IMPORTANT SECURITY NOTE (read this):
+     Because this is a fully static site with no server, the only
+     way for the page to write to your repo is to send API requests
+     straight from the browser using a token. That means whoever has
+     the token can push files to your repo. Please:
+       1) Create a FINE-GRAINED token at github.com/settings/tokens
+       2) Scope it to ONLY this one repository
+       3) Give it ONLY "Contents: Read and write" permission
+       4) Set an expiration date and rotate it occasionally
+     Never share that token with anyone besides the two of you.
      ============================================================ */
 
   :root{
@@ -75,6 +92,59 @@
   }
   .navdots a:hover, .navdots a.active{ background:var(--rose); transform:scale(1.3); }
   @media (max-width:760px){ .navdots{ display:none; } }
+
+  /* ---------- GitHub connection status + modal ---------- */
+  .gh-status{
+    position:fixed; top:14px; left:14px; z-index:60;
+    background:var(--paper); border:1px solid var(--line); border-radius:20px;
+    padding:8px 14px; font-size:0.78rem; color:var(--ink-soft); display:flex; align-items:center; gap:8px;
+    box-shadow:var(--shadow); cursor:pointer; user-select:none;
+  }
+  .gh-status .dot{ width:8px; height:8px; border-radius:50%; background:#c9433a; flex:none; }
+  .gh-status.connected .dot{ background:#4caf6b; }
+  .gh-modal-backdrop{
+    position:fixed; inset:0; background:rgba(43,15,22,0.6); display:none;
+    align-items:center; justify-content:center; z-index:200; padding:20px;
+  }
+  .gh-modal-backdrop.show{ display:flex; }
+  .gh-modal{
+    background:var(--paper); border-radius:16px; padding:26px; max-width:440px; width:100%;
+    box-shadow:var(--shadow); max-height:90vh; overflow:auto;
+  }
+  .gh-modal h3{ margin-bottom:10px; }
+  .gh-modal p{ font-size:0.85rem; color:var(--ink-soft); margin-bottom:14px; line-height:1.55; }
+  .gh-modal p a{ color:var(--rose-deep); font-weight:600; }
+  .gh-modal label{ font-size:0.8rem; color:var(--ink-soft); font-weight:600; display:block; margin-bottom:6px;}
+  .gh-modal input{
+    width:100%; padding:10px 12px; border-radius:9px; border:1px solid var(--line);
+    background:var(--bg); font-family:'Karla',sans-serif; margin-bottom:14px; color:var(--ink);
+  }
+  .gh-modal .form-actions{ display:flex; gap:10px; }
+  .gh-modal .form-actions button{ flex:1; padding:10px; border-radius:10px; border:none; cursor:pointer; font-weight:600; font-size:0.85rem;}
+  .gh-modal .btn-save{ background:var(--rose); color:#fff; }
+  .gh-modal .btn-cancel{ background:transparent; border:1px solid var(--line); color:var(--ink-soft); }
+  .gh-modal .btn-disconnect{ background:transparent; border:1px solid var(--rose); color:var(--rose-deep); margin-top:8px; width:100%; padding:9px; border-radius:10px; cursor:pointer; font-weight:600; font-size:0.8rem;}
+
+  /* ---------- loading overlay + toast ---------- */
+  .loading-overlay{
+    position:fixed; inset:0; background:var(--bg); z-index:300; display:flex;
+    flex-direction:column; align-items:center; justify-content:center; gap:14px;
+    transition:opacity .3s;
+  }
+  .loading-overlay.hide{ opacity:0; pointer-events:none; }
+  .spinner{
+    width:34px; height:34px; border-radius:50%; border:3px solid var(--line); border-top-color:var(--rose);
+    animation:spin 0.8s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .loading-overlay .msg{ font-family:'Caveat',cursive; font-size:1.3rem; color:var(--rose-deep); }
+  .toast{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(120px);
+    background:var(--bg-deep); color:#fff; padding:12px 22px; border-radius:12px; font-size:0.85rem;
+    z-index:250; transition:.3s; box-shadow:var(--shadow); max-width:90vw; text-align:center;
+  }
+  .toast.show{ transform:translateX(-50%) translateY(0); }
+  .toast.error{ background:#7A2B2B; }
 
   /* ---------- hero ---------- */
   .hero{
@@ -176,18 +246,44 @@
   .letter-card.open .letter-preview{ display:none; }
   .letter-hint{ margin-top:14px; font-size:0.8rem; color:var(--ink-soft); font-style:italic; }
 
-  /* the scanned/photographed letter itself */
-  .letter-photo-thumb{
-    margin-top:10px; border-radius:10px; overflow:hidden; max-width:220px;
-    box-shadow:var(--shadow); border:1px solid var(--line);
+  /* ---------- upload controls (letters + series) ---------- */
+  .upload-btn{
+    display:inline-flex; align-items:center; gap:6px; margin-top:10px;
+    background:var(--paper); border:1px dashed var(--rose); color:var(--rose-deep);
+    border-radius:10px; padding:8px 14px; font-size:0.8rem; font-weight:600;
+    cursor:pointer; transition:.2s;
   }
-  .letter-photo-thumb img{ width:100%; display:block; transition:.3s; }
-  .letter-photo-thumb:hover img{ transform:scale(1.03); }
-  .letter-photo-full{
-    margin-top:14px; border-radius:14px; overflow:hidden; max-width:420px;
+  .upload-btn:hover{ background:var(--rose); color:#fff; border-style:solid; }
+  .upload-btn.disabled{ opacity:0.55; cursor:not-allowed; }
+  .upload-btn input[type="file"]{ display:none; }
+  .photo-actions{ display:flex; gap:8px; flex-wrap:wrap; }
+  .remove-btn{
+    display:inline-flex; align-items:center; gap:6px; margin-top:10px;
+    background:transparent; border:1px solid var(--line); color:var(--ink-soft);
+    border-radius:10px; padding:8px 14px; font-size:0.8rem; font-weight:600; cursor:pointer;
+  }
+  .remove-btn:hover{ color:var(--rose-deep); border-color:var(--rose); }
+
+  /* multiple photographed pages per letter */
+  .letter-pages{
+    margin-top:10px; display:flex; flex-wrap:wrap; gap:10px;
+  }
+  .letter-page{
+    position:relative; width:92px; border-radius:10px; overflow:hidden;
     box-shadow:var(--shadow); border:1px solid var(--line); cursor:zoom-in;
   }
-  .letter-photo-full img{ width:100%; display:block; }
+  .letter-page img{ width:100%; aspect-ratio:4/5; object-fit:cover; display:block; transition:.3s; }
+  .letter-page:hover img{ transform:scale(1.05); }
+  .letter-page .page-num{
+    position:absolute; bottom:0; left:0; right:0; background:rgba(43,15,22,0.6); color:#fff;
+    font-size:0.65rem; text-align:center; padding:2px 0;
+  }
+  .letter-page .page-remove{
+    position:absolute; top:3px; right:3px; width:18px; height:18px; border-radius:50%;
+    background:rgba(43,15,22,0.65); color:#fff; border:none; cursor:pointer; font-size:0.7rem;
+    display:flex; align-items:center; justify-content:center; opacity:0; transition:.2s;
+  }
+  .letter-page:hover .page-remove{ opacity:1; }
   .letter-photo-placeholder{
     margin-top:10px; width:100%; max-width:260px; aspect-ratio:4/5; border-radius:12px;
     background:linear-gradient(135deg, #FCE4E9, #F6C8D2); color:var(--rose-deep);
@@ -196,17 +292,109 @@
   }
   .letter-photo-placeholder span{ font-size:1.6rem; margin-bottom:6px; }
   .letter-text{ margin-top:14px; white-space:pre-line; }
+  .pending-pages-note{ font-size:0.8rem; color:var(--ink-soft); margin-top:6px; }
 
   .lightbox{
     position:fixed; inset:0; background:rgba(43,15,22,0.85); display:none;
     align-items:center; justify-content:center; z-index:100; padding:30px;
   }
   .lightbox.show{ display:flex; }
-  .lightbox img{ max-height:85vh; border-radius:12px; }
+  .lightbox img{ max-height:80vh; border-radius:12px; }
   .lightbox .lb-cap{ color:#fff; text-align:center; margin-top:14px; font-family:'Caveat',cursive; font-size:1.4rem;}
   .lightbox .close{
     position:absolute; top:24px; right:30px; color:#fff; font-size:2rem; cursor:pointer;
   }
+  .lightbox .lb-nav{
+    position:absolute; top:50%; transform:translateY(-50%); background:rgba(255,255,255,0.12);
+    color:#fff; border:none; width:44px; height:44px; border-radius:50%; font-size:1.4rem;
+    cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  .lightbox .lb-nav:hover{ background:rgba(255,255,255,0.25); }
+  .lightbox .lb-prev{ left:20px; }
+  .lightbox .lb-next{ right:20px; }
+
+  /* ---------- series & movies ---------- */
+  #series{ background:var(--bg); }
+  .series-grid{
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:22px;
+  }
+  .series-card{
+    background:var(--paper); border:1px solid var(--line); border-radius:16px;
+    overflow:hidden; box-shadow:var(--shadow); position:relative; transition:.25s; cursor:pointer;
+  }
+  .series-card:hover{ transform:translateY(-3px); }
+  .series-cover{
+    width:100%; aspect-ratio:2/3; background:linear-gradient(135deg,#FCE4E9,#F6C8D2);
+    display:flex; align-items:center; justify-content:center; overflow:hidden;
+    color:var(--rose-deep); text-align:center; font-size:0.75rem; padding:12px;
+  }
+  .series-cover img{ width:100%; height:100%; object-fit:cover; }
+  .series-cover span{ font-size:1.6rem; margin-bottom:6px; display:block; }
+  .series-info{ padding:14px 16px 16px; }
+  .series-name{ font-size:1.02rem; font-weight:600; color:var(--rose-deep); font-family:'Fraunces',serif; }
+  .series-eps{ margin-top:4px; font-size:0.8rem; color:var(--ink-soft); }
+
+  /* dual (separate) ratings */
+  .dual-stars{ display:flex; flex-direction:column; gap:5px; margin-top:8px; }
+  .dual-stars .row{ display:flex; align-items:center; gap:8px; }
+  .dual-stars .row .who-label{ font-size:0.72rem; color:var(--ink-soft); min-width:54px; flex:none; }
+  .dual-stars .row .stars{ font-size:0.95rem; letter-spacing:2px; color:var(--line); }
+  .dual-stars .row .stars .filled{ color:var(--gold); }
+
+  .series-review{
+    display:none; margin-top:10px; padding-top:10px; border-top:1px dashed var(--line);
+    font-size:0.85rem; color:var(--ink); white-space:pre-line;
+  }
+  .series-card.open .series-review{ display:block; }
+  .series-hint{ font-size:0.72rem; color:var(--ink-soft); font-style:italic; margin-top:8px; }
+  .series-edit{
+    position:absolute; top:8px; right:40px; width:26px; height:26px; border-radius:50%;
+    background:rgba(43,15,22,0.55); color:#fff; border:none; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-size:0.8rem; opacity:0;
+    transition:.2s;
+  }
+  .series-card:hover .series-edit{ opacity:1; }
+  .star-picker{ display:flex; gap:4px; font-size:1.5rem; }
+  .star-picker span{ cursor:pointer; color:var(--line); transition:.15s; }
+  .star-picker span.filled{ color:var(--gold); }
+  .rating-block{ margin-bottom:2px; }
+  .rating-block .who-name{ font-size:0.78rem; color:var(--ink-soft); font-weight:600; margin-bottom:4px; }
+  .series-remove{
+    position:absolute; top:8px; right:8px; width:26px; height:26px; border-radius:50%;
+    background:rgba(43,15,22,0.55); color:#fff; border:none; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-size:0.95rem; opacity:0;
+    transition:.2s;
+  }
+  .series-card:hover .series-remove{ opacity:1; }
+  .add-series-card, .add-card{
+    border:2px dashed var(--line); border-radius:16px; background:transparent;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    min-height:100%; padding:20px; gap:10px; cursor:pointer; color:var(--ink-soft);
+  }
+  .add-card{ aspect-ratio:auto; min-height:180px; }
+  .add-series-card{ aspect-ratio:2/3; }
+  .add-series-card:hover, .add-card:hover{ border-color:var(--rose); color:var(--rose-deep); }
+  .add-series-card .plus, .add-card .plus{ font-size:2rem; font-family:'Fraunces',serif; }
+  .series-form, .entry-form{
+    margin-top:26px; background:var(--paper); border:1px solid var(--line); border-radius:16px;
+    padding:22px 24px; display:none; gap:12px; flex-direction:column; max-width:420px;
+  }
+  .series-form.show, .entry-form.show{ display:flex; }
+  .series-form label, .entry-form label{ font-size:0.8rem; color:var(--ink-soft); font-weight:600; }
+  .series-form input[type="text"], .series-form input[type="number"],
+  .entry-form input[type="text"], .entry-form input[type="date"], .entry-form select, .entry-form textarea{
+    width:100%; padding:9px 12px; border-radius:9px; border:1px solid var(--line);
+    background:var(--bg); color:var(--ink); font-family:'Karla',sans-serif; font-size:0.92rem;
+  }
+  .entry-form textarea{ resize:vertical; min-height:70px; font-family:'Karla',sans-serif; }
+  .series-form .form-row, .entry-form .form-row{ display:flex; flex-direction:column; gap:4px; }
+  .series-form .form-actions, .entry-form .form-actions{ display:flex; gap:10px; margin-top:4px; }
+  .series-form .form-actions button, .entry-form .form-actions button{
+    flex:1; padding:10px; border-radius:10px; border:none; cursor:pointer; font-weight:600; font-size:0.85rem;
+  }
+  .series-form .btn-save, .entry-form .btn-save{ background:var(--rose); color:#fff; }
+  .series-form .btn-save:disabled, .entry-form .btn-save:disabled{ opacity:0.6; cursor:not-allowed; }
+  .series-form .btn-cancel, .entry-form .btn-cancel{ background:transparent; border:1px solid var(--line); color:var(--ink-soft); }
 
   /* ---------- countdowns ---------- */
   #countdowns{ background:var(--bg-deep); color:#F7E7DA; }
@@ -232,11 +420,44 @@
 </head>
 <body>
 
+<div class="loading-overlay" id="loading-overlay">
+  <div class="spinner"></div>
+  <div class="msg">opening our little world…</div>
+</div>
+
 <div id="heart-field"></div>
+
+<div class="gh-status" id="gh-status" title="Connect GitHub to save changes">
+  <span class="dot"></span>
+  <span id="gh-status-text">Not connected</span>
+</div>
+
+<div class="gh-modal-backdrop" id="gh-modal-backdrop">
+  <div class="gh-modal">
+    <h3>Connect GitHub</h3>
+    <p>
+      Paste a personal access token so this device can save letters, ratings and photos
+      straight to your repo. Create one at
+      <a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noopener">github.com/settings/tokens</a> —
+      choose <strong>Fine-grained token</strong>, scope it to only this repository, and give it
+      <strong>Contents: Read and write</strong> permission. It's saved only in this browser.
+    </p>
+    <label for="gh-token-input">Personal access token</label>
+    <input type="text" id="gh-token-input" placeholder="github_pat_..." autocomplete="off">
+    <div class="form-actions">
+      <button class="btn-save" id="gh-token-save">Save & Connect</button>
+      <button class="btn-cancel" id="gh-token-cancel">Cancel</button>
+    </div>
+    <button class="btn-disconnect" id="gh-token-disconnect">Disconnect / remove saved token</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
 
 <nav class="navdots">
   <a href="#top" class="active"></a>
   <a href="#letters"></a>
+  <a href="#series"></a>
   <a href="#countdowns"></a>
   <a href="#closing"></a>
 </nav>
@@ -279,6 +500,83 @@
     <div class="kicker">every Sunday</div>
     <h2 class="section-title">Our Letters — The Archive</h2>
     <div class="letters-grid" id="letters-grid"></div>
+
+    <div class="entry-form" id="letter-form">
+      <div class="form-row">
+        <label for="letter-from-input">From</label>
+        <select id="letter-from-input"></select>
+      </div>
+      <div class="form-row">
+        <label for="letter-dateiso-input">Date</label>
+        <input type="date" id="letter-dateiso-input">
+      </div>
+      <div class="form-row">
+        <label for="letter-title-input">Title</label>
+        <input type="text" id="letter-title-input" placeholder="e.g. A little letter">
+      </div>
+      <div class="form-row">
+        <label for="letter-body-input">Message (optional)</label>
+        <textarea id="letter-body-input" placeholder="A caption, a translation, or a few words..."></textarea>
+      </div>
+      <div class="form-row">
+        <label>Photos of the letter (add as many pages as you need)</label>
+        <label class="upload-btn" id="letter-upload-label">📷 Choose image(s)
+          <input type="file" id="letter-photo-input" accept="image/*" multiple>
+        </label>
+        <div class="pending-pages-note" id="pending-pages-note"></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-save" id="letter-save-btn">Add letter</button>
+        <button class="btn-cancel" id="letter-cancel-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="series">
+  <div class="section-inner">
+    <div class="kicker">popcorn & blankets</div>
+    <h2 class="section-title">Series & Movies We've Watched Together</h2>
+    <div class="series-grid" id="series-grid"></div>
+
+    <div class="series-form" id="series-form">
+      <div class="form-row">
+        <label for="series-name-input">Show / movie name</label>
+        <input type="text" id="series-name-input" placeholder="e.g. Friends">
+      </div>
+      <div class="form-row">
+        <label for="series-eps-input">Number of episodes</label>
+        <input type="number" id="series-eps-input" min="0" placeholder="e.g. 24">
+      </div>
+      <div class="form-row">
+        <label>Cover photo</label>
+        <label class="upload-btn" id="series-cover-upload-label">📷 Choose an image
+          <input type="file" id="series-cover-input" accept="image/*">
+        </label>
+      </div>
+      <div class="form-row">
+        <div class="rating-block">
+          <div class="who-name" id="rating-label-mine">Your rating</div>
+          <div class="star-picker" id="series-star-picker-mine">
+            <span data-star="1">★</span><span data-star="2">★</span><span data-star="3">★</span><span data-star="4">★</span><span data-star="5">★</span>
+          </div>
+        </div>
+        <div class="rating-block" style="margin-top:10px;">
+          <div class="who-name" id="rating-label-hers">Her rating</div>
+          <div class="star-picker" id="series-star-picker-hers">
+            <span data-star="1">★</span><span data-star="2">★</span><span data-star="3">★</span><span data-star="4">★</span><span data-star="5">★</span>
+          </div>
+        </div>
+      </div>
+      <div class="form-row">
+        <label for="series-review-input">Our review / opinion (optional)</label>
+        <textarea id="series-review-input" placeholder="What did we think of it?"></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn-save" id="series-save-btn">Add</button>
+        <button class="btn-cancel" id="series-cancel-btn">Cancel</button>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -299,10 +597,12 @@
 
 <div class="lightbox" id="lightbox">
   <span class="close" id="lb-close">&times;</span>
+  <button class="lb-nav lb-prev" id="lb-prev">&#8249;</button>
   <div>
     <img id="lb-img" src="" alt="">
     <div class="lb-cap" id="lb-cap"></div>
   </div>
+  <button class="lb-nav lb-next" id="lb-next">&#8250;</button>
 </div>
 
 <script>
@@ -324,29 +624,40 @@ const CONFIG = {
     { label: "Our anniversary", who: "Us",        date: "2026-06-19" }, // EDIT ME
   ],
 
-  // ---- Letters archive. Add ONE entry per Sunday — new or old, in any order.
-  // The page auto-sorts newest first using "dateISO", so you never have to
-  // worry about where in the list you paste a new one.
-  //
-  // Since most of your letters are photos of handwritten pages, each entry
-  // supports a "photo" (the image of the letter itself). "body" is optional
-  // typed text — use it for a caption, a translation, or leave it "".
-  // If "photo" is empty, a soft placeholder card is shown instead.
+  // ---- GitHub settings: where photos + all site data get saved ----
+  github: {
+    owner: "slim-trabelsi",     // EDIT ME — e.g. "slimfromtunis"
+    repo: "Slim-Hannah",            // EDIT ME — e.g. "ours"
+    branch: "main",                    // EDIT ME if your default branch isn't "main"
+    dataPath: "data/ours-data.json",   // where letters + series get stored (auto-created)
+    imagesPath: "images"               // where uploaded photos get stored
+  },
+
+  // ---- Starting data (only used the very first time, before data/ours-data.json exists) ----
   letters: [
-    {                
-      date: "Sunday",         // EDIT ME — how the date is displayed
+    {
+      id: "letter-1",
+      date: "Sunday",
+      dateISO: "2026-06-21",
       from: "Slim",
       title: "A little letter",
-      photo: "",                              // EDIT ME — paste an image URL or base64 string
-      body: ""                                // EDIT ME — optional typed text/caption
+      photos: [],
+      body: ""
     },
     {
+      id: "letter-2",
       date: "Sunday",
+      dateISO: "2026-06-28",
       from: "Hannah",
       title: "A little letter ",
-      photo: "",
+      photos: [],
       body: ""
     }
+  ],
+
+  // ---- Starting series/movies list (only used the very first time) ----
+  series: [
+    { id: "series-1", name: "Friends", cover: "", episodes: 0, myRating: 0, herRating: 0, review: "" }
   ],
 
   // ---- Closing message ----
@@ -355,14 +666,188 @@ const CONFIG = {
 };
 
 /* ============================================================
-   Below this line is the engine that renders CONFIG. You don't
-   need to touch it unless you want to change how things work.
+   Below this line is the engine. You don't need to touch it
+   unless you want to change how storage/upload behaves.
    ============================================================ */
+
+const GH = CONFIG.github;
+
+// ---------------------------------------------------------------
+// Toast + loading helpers
+// ---------------------------------------------------------------
+let toastTimer = null;
+function showToast(msg, isError){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.toggle('error', !!isError);
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3800);
+}
+function hideLoadingOverlay(){
+  document.getElementById('loading-overlay').classList.add('hide');
+}
+
+// ---------------------------------------------------------------
+// GitHub token handling (stored only in this browser's localStorage)
+// ---------------------------------------------------------------
+const TOKEN_KEY = 'ours-gh-token';
+function getToken(){ return localStorage.getItem(TOKEN_KEY) || ''; }
+function setToken(t){ localStorage.setItem(TOKEN_KEY, t); }
+function clearToken(){ localStorage.removeItem(TOKEN_KEY); }
+
+function refreshGhStatusUI(){
+  const el = document.getElementById('gh-status');
+  const text = document.getElementById('gh-status-text');
+  const connected = !!getToken();
+  el.classList.toggle('connected', connected);
+  text.textContent = connected ? 'Connected' : 'Not connected';
+}
+
+const ghModal = document.getElementById('gh-modal-backdrop');
+document.getElementById('gh-status').addEventListener('click', () => {
+  document.getElementById('gh-token-input').value = getToken();
+  ghModal.classList.add('show');
+});
+document.getElementById('gh-token-cancel').addEventListener('click', () => ghModal.classList.remove('show'));
+ghModal.addEventListener('click', (e) => { if(e.target === ghModal) ghModal.classList.remove('show'); });
+document.getElementById('gh-token-save').addEventListener('click', () => {
+  const val = document.getElementById('gh-token-input').value.trim();
+  if(!val){ showToast('Paste a token first.', true); return; }
+  setToken(val);
+  refreshGhStatusUI();
+  ghModal.classList.remove('show');
+  showToast('Connected — your changes will now save to GitHub.');
+});
+document.getElementById('gh-token-disconnect').addEventListener('click', () => {
+  clearToken();
+  refreshGhStatusUI();
+  ghModal.classList.remove('show');
+  showToast('Disconnected on this device.');
+});
+
+function requireTokenOrPrompt(){
+  if(getToken()) return true;
+  showToast("Connect GitHub first (top-left button) so this save can go through.", true);
+  ghModal.classList.add('show');
+  return false;
+}
+
+// ---------------------------------------------------------------
+// Low-level GitHub API helpers
+// ---------------------------------------------------------------
+function ghConfigured(){
+  return GH.owner && GH.owner !== 'YOUR_GITHUB_USERNAME' && GH.repo && GH.repo !== 'YOUR_REPO_NAME';
+}
+
+async function ghGetFile(path){
+  const headers = {};
+  if(getToken()) headers.Authorization = `token ${getToken()}`;
+  const res = await fetch(
+    `https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${path}?ref=${GH.branch}&_=${Date.now()}`,
+    { headers }
+  );
+  if(res.status === 404) return null;
+  if(!res.ok) throw new Error(`GitHub read failed (${res.status})`);
+  return res.json(); // { sha, content (base64, chunked), ... }
+}
+
+function b64EncodeUnicode(str){
+  return btoa(unescape(encodeURIComponent(str)));
+}
+function b64DecodeUnicode(str){
+  return decodeURIComponent(escape(atob(str.replace(/\n/g, ''))));
+}
+
+async function ghPutTextFile(path, contentStr, message){
+  if(!getToken()) throw new Error('No GitHub token connected.');
+  let sha;
+  try{
+    const existing = await ghGetFile(path);
+    if(existing) sha = existing.sha;
+  } catch(e){ /* file may not exist yet, that's fine */ }
+
+  const body = { message, content: b64EncodeUnicode(contentStr), branch: GH.branch };
+  if(sha) body.sha = sha;
+
+  const res = await fetch(`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${path}`, {
+    method: 'PUT',
+    headers: { Authorization: `token ${getToken()}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if(!res.ok){ const t = await res.text(); throw new Error('GitHub write failed: ' + t); }
+  return res.json();
+}
+
+async function ghPutBinaryFile(path, base64Content, message){
+  if(!getToken()) throw new Error('No GitHub token connected.');
+  const body = { message, content: base64Content, branch: GH.branch };
+  const res = await fetch(`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${path}`, {
+    method: 'PUT',
+    headers: { Authorization: `token ${getToken()}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if(!res.ok){ const t = await res.text(); throw new Error('GitHub image upload failed: ' + t); }
+  return res.json();
+}
+
+function readFileAsDataURL(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function uploadImageToGitHub(file){
+  if(!requireTokenOrPrompt()) throw new Error('Not connected');
+  const dataURL = await readFileAsDataURL(file);
+  const base64 = dataURL.split(',')[1];
+  const safeName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.\-]/g, '_')}`;
+  const path = `${GH.imagesPath}/${safeName}`;
+  await ghPutBinaryFile(path, base64, `Add image ${safeName}`);
+  return `https://raw.githubusercontent.com/${GH.owner}/${GH.repo}/${GH.branch}/${path}`;
+}
+
+// ---------------------------------------------------------------
+// Site data (letters + series) — lives in data/ours-data.json in the repo
+// ---------------------------------------------------------------
+let state = { letters: [], series: [] };
+
+async function loadSiteData(){
+  if(!ghConfigured()){
+    showToast('Set your GitHub owner/repo in CONFIG.github first.', true);
+    return { letters: CONFIG.letters, series: CONFIG.series };
+  }
+  try{
+    const file = await ghGetFile(GH.dataPath);
+    if(file){
+      const json = b64DecodeUnicode(file.content);
+      const parsed = JSON.parse(json);
+      return {
+        letters: parsed.letters || [],
+        series: parsed.series || []
+      };
+    }
+  } catch(e){
+    console.warn('Could not load data from GitHub, falling back to defaults', e);
+    showToast('Could not reach GitHub — showing local defaults.', true);
+  }
+  return { letters: CONFIG.letters, series: CONFIG.series };
+}
+
+async function saveSiteData(){
+  if(!requireTokenOrPrompt()) throw new Error('Not connected');
+  await ghPutTextFile(GH.dataPath, JSON.stringify(state, null, 2), 'Update ours data');
+}
 
 // Hero text
 document.getElementById('hero-names').innerHTML =
   `${CONFIG.names.you} <span class="amp">&amp;</span> ${CONFIG.names.her}`;
 document.getElementById('hero-sub').textContent = CONFIG.subtitle;
+document.getElementById('rating-label-mine').textContent = `${CONFIG.names.you}'s rating`;
+document.getElementById('rating-label-hers').textContent = `${CONFIG.names.her}'s rating`;
 
 // Days together
 function daysSince(dateStr){
@@ -371,11 +856,8 @@ function daysSince(dateStr){
   return Math.max(0, Math.floor((now - start) / 86400000));
 }
 document.getElementById('days-together').textContent = daysSince(CONFIG.togetherSince);
-document.getElementById('letters-count').textContent = CONFIG.letters.length;
 
 // Live clocks — Tunis and the Philippines, plus the time difference between them.
-// Uses real timezones (Africa/Tunis, Asia/Manila) so it's always correct,
-// even if a country changes its clock rules in the future.
 const TZ_A = "Africa/Tunis";     // EDIT ME if you're ever not in Tunisia
 const TZ_B = "Asia/Manila";      // EDIT ME if she's ever not in the Philippines
 
@@ -400,59 +882,460 @@ function updateClocks(){
 updateClocks();
 setInterval(updateClocks, 1000);
 
-// Letters archive — sorted newest first by dateISO, so you can paste
-// a new Sunday's letter anywhere in the CONFIG.letters array
+// ---- Lightbox ----
 const lightbox = document.getElementById('lightbox');
 const lbImg = document.getElementById('lb-img');
 const lbCap = document.getElementById('lb-cap');
-
-const lettersGrid = document.getElementById('letters-grid');
-const sortedLetters = [...CONFIG.letters].sort((a, b) => (a.dateISO < b.dateISO ? 1 : -1));
-
-sortedLetters.forEach(letter => {
-  const card = document.createElement('div');
-  card.className = 'letter-card';
-
-  const photoPreviewHTML = letter.photo
-    ? `<div class="letter-photo-thumb"><img src="${letter.photo}" alt="Letter from ${letter.from}, ${letter.date}"></div>`
-    : `<div class="letter-photo-placeholder"><span>✉</span>Photo of this letter not added yet</div>`;
-
-  const photoFullHTML = letter.photo
-    ? `<div class="letter-photo-full" data-full><img src="${letter.photo}" alt="Letter from ${letter.from}, ${letter.date}"></div>`
-    : `<div class="letter-photo-placeholder"><span>✉</span>Add the photo of this letter in CONFIG</div>`;
-
-  const bodyHTML = letter.body ? `<div class="letter-text">${letter.body}</div>` : '';
-
-  card.innerHTML = `
-    <div class="letter-top">
-      <span class="letter-date">${letter.date}</span>
-      <span class="letter-from">from ${letter.from}</span>
-    </div>
-    <div class="letter-title">${letter.title}</div>
-    <div class="letter-preview">${photoPreviewHTML}</div>
-    <div class="letter-full">${photoFullHTML}${bodyHTML}</div>
-    <div class="letter-hint">tap to open / close · tap the photo to zoom</div>
-  `;
-
-  card.addEventListener('click', (e) => {
-    // if the click was on the enlarged photo, zoom instead of collapsing the card
-    if(e.target.closest('[data-full]') && letter.photo){
-      e.stopPropagation();
-      lbImg.src = letter.photo;
-      lbCap.textContent = `${letter.from} · ${letter.date}`;
-      lightbox.classList.add('show');
-      return;
-    }
-    card.classList.toggle('open');
-  });
-
-  lettersGrid.appendChild(card);
+let lbGallery = [];
+let lbIndex = 0;
+let lbLabel = '';
+function openLightbox(gallery, index, label){
+  lbGallery = gallery;
+  lbIndex = index;
+  lbLabel = label;
+  updateLightbox();
+  lightbox.classList.add('show');
+}
+function updateLightbox(){
+  lbImg.src = lbGallery[lbIndex];
+  const pageInfo = lbGallery.length > 1 ? ` · page ${lbIndex+1}/${lbGallery.length}` : '';
+  lbCap.textContent = `${lbLabel}${pageInfo}`;
+  const multi = lbGallery.length > 1;
+  document.getElementById('lb-prev').style.display = multi ? 'flex' : 'none';
+  document.getElementById('lb-next').style.display = multi ? 'flex' : 'none';
+}
+document.getElementById('lb-prev').addEventListener('click', (e) => {
+  e.stopPropagation();
+  lbIndex = (lbIndex - 1 + lbGallery.length) % lbGallery.length;
+  updateLightbox();
 });
-
+document.getElementById('lb-next').addEventListener('click', (e) => {
+  e.stopPropagation();
+  lbIndex = (lbIndex + 1) % lbGallery.length;
+  updateLightbox();
+});
+window.addEventListener('keydown', (e) => {
+  if(!lightbox.classList.contains('show')) return;
+  if(e.key === 'ArrowLeft') document.getElementById('lb-prev').click();
+  if(e.key === 'ArrowRight') document.getElementById('lb-next').click();
+  if(e.key === 'Escape') lightbox.classList.remove('show');
+});
 document.getElementById('lb-close').addEventListener('click', () => lightbox.classList.remove('show'));
 lightbox.addEventListener('click', (e) => { if(e.target === lightbox) lightbox.classList.remove('show'); });
 
+// ---------------------------------------------------------------
+// Letters archive
+// ---------------------------------------------------------------
+const lettersGrid = document.getElementById('letters-grid');
+const letterForm = document.getElementById('letter-form');
+
+const fromSelect = document.getElementById('letter-from-input');
+[CONFIG.names.you, CONFIG.names.her].forEach(name => {
+  const opt = document.createElement('option');
+  opt.value = name; opt.textContent = name;
+  fromSelect.appendChild(opt);
+});
+
+function formatDateDisplay(isoStr){
+  if(!isoStr) return 'Undated';
+  const d = new Date(isoStr + "T00:00:00");
+  return d.toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+}
+
+function renderLetters(){
+  const sorted = [...state.letters].sort((a, b) => ((a.dateISO||'') < (b.dateISO||'') ? 1 : -1));
+  lettersGrid.innerHTML = '';
+  document.getElementById('letters-count').textContent = state.letters.length;
+
+  sorted.forEach((letter) => {
+    const photos = letter.photos || [];
+    const dateLabel = letter.date || formatDateDisplay(letter.dateISO);
+
+    const card = document.createElement('div');
+    card.className = 'letter-card';
+
+    const pagesHTML = photos.length
+      ? `<div class="letter-pages">${photos.map((src, i) => `
+          <div class="letter-page" data-open-gallery="${i}">
+            <img src="${src}" alt="Letter from ${letter.from}, page ${i+1}">
+            <div class="page-num">Page ${i+1}</div>
+            <button class="page-remove" data-page-remove="${i}" title="Remove this page">&times;</button>
+          </div>`).join('')}</div>`
+      : `<div class="letter-photo-placeholder"><span>✉</span>No pages added yet</div>`;
+
+    const previewHTML = photos.length
+      ? `<div class="letter-pages"><div class="letter-page"><img src="${photos[0]}" alt="Letter from ${letter.from}"></div></div>`
+      : `<div class="letter-photo-placeholder"><span>✉</span>No pages added yet</div>`;
+
+    const bodyHTML = letter.body ? `<div class="letter-text">${letter.body}</div>` : '';
+
+    card.innerHTML = `
+      <div class="letter-top">
+        <span class="letter-date">${dateLabel}</span>
+        <span class="letter-from">from ${letter.from}</span>
+      </div>
+      <div class="letter-title">${letter.title}${photos.length > 1 ? ` <span style="font-size:0.75rem; color:var(--ink-soft); font-weight:400;">(${photos.length} pages)</span>` : ''}</div>
+      <div class="letter-preview">${previewHTML}</div>
+      <div class="letter-full">
+        ${pagesHTML}${bodyHTML}
+        <div class="photo-actions">
+          <label class="upload-btn" data-letter-upload-label="${letter.id}">📷 ${photos.length ? 'Add more pages' : 'Add page(s)'}
+            <input type="file" accept="image/*" multiple data-letter-upload="${letter.id}">
+          </label>
+          <button class="remove-btn" data-letter-remove="${letter.id}">Delete letter</button>
+        </div>
+      </div>
+      <div class="letter-hint">tap to open / close · tap a page to zoom</div>
+    `;
+
+    card.addEventListener('click', (e) => {
+      if(e.target.closest('[data-letter-upload]') || e.target.closest('[data-letter-remove]') || e.target.closest('[data-page-remove]')){
+        e.stopPropagation();
+        return;
+      }
+      const gallerySpot = e.target.closest('[data-open-gallery]');
+      if(gallerySpot && card.classList.contains('open')){
+        e.stopPropagation();
+        openLightbox(photos, parseInt(gallerySpot.dataset.openGallery, 10), `${letter.from} · ${dateLabel}`);
+        return;
+      }
+      card.classList.toggle('open');
+    });
+
+    const uploadInput = card.querySelector('[data-letter-upload]');
+    const uploadLabel = card.querySelector('[data-letter-upload-label]');
+    uploadInput.addEventListener('click', (e) => e.stopPropagation());
+    uploadInput.addEventListener('change', async (e) => {
+      const files = e.target.files;
+      if(!files || !files.length) return;
+      if(!requireTokenOrPrompt()) return;
+      uploadLabel.classList.add('disabled');
+      const originalText = uploadLabel.firstChild.textContent;
+      uploadLabel.firstChild.textContent = '⏳ Uploading...';
+      try{
+        const urls = [];
+        for(const f of Array.from(files)){
+          urls.push(await uploadImageToGitHub(f));
+        }
+        letter.photos = [...photos, ...urls];
+        await saveSiteData();
+        showToast('Page(s) added and saved.');
+        renderLetters();
+      } catch(err){
+        console.error(err);
+        showToast('Upload failed: ' + err.message, true);
+        uploadLabel.classList.remove('disabled');
+        uploadLabel.firstChild.textContent = originalText;
+      }
+    });
+
+    card.querySelectorAll('[data-page-remove]').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const pageIdx = parseInt(btn.dataset.pageRemove, 10);
+        letter.photos = photos.filter((_, i) => i !== pageIdx);
+        try{
+          await saveSiteData();
+          showToast('Page removed.');
+        } catch(err){ showToast('Could not save: ' + err.message, true); }
+        renderLetters();
+      });
+    });
+
+    card.querySelector('[data-letter-remove]').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      state.letters = state.letters.filter(item => item.id !== letter.id);
+      try{
+        await saveSiteData();
+        showToast('Letter deleted.');
+      } catch(err){ showToast('Could not save: ' + err.message, true); }
+      renderLetters();
+    });
+
+    lettersGrid.appendChild(card);
+  });
+
+  const addCard = document.createElement('div');
+  addCard.className = 'add-card';
+  addCard.innerHTML = `<span class="plus">+</span>Add a letter`;
+  addCard.addEventListener('click', () => {
+    letterForm.classList.add('show');
+    letterForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+  lettersGrid.appendChild(addCard);
+}
+
+let pendingLetterPhotos = [];
+document.getElementById('letter-photo-input').addEventListener('change', async (e) => {
+  const files = e.target.files;
+  if(!files || !files.length) return;
+  if(!requireTokenOrPrompt()){ e.target.value = ''; return; }
+  const label = document.getElementById('letter-upload-label');
+  label.classList.add('disabled');
+  document.getElementById('pending-pages-note').textContent = '⏳ Uploading...';
+  try{
+    for(const f of Array.from(files)){
+      pendingLetterPhotos.push(await uploadImageToGitHub(f));
+    }
+    document.getElementById('pending-pages-note').textContent =
+      `${pendingLetterPhotos.length} page${pendingLetterPhotos.length===1?'':'s'} uploaded — choose more files to add extra pages`;
+  } catch(err){
+    showToast('Upload failed: ' + err.message, true);
+    document.getElementById('pending-pages-note').textContent = '';
+  } finally {
+    label.classList.remove('disabled');
+    e.target.value = '';
+  }
+});
+
+function resetLetterForm(){
+  document.getElementById('letter-title-input').value = '';
+  document.getElementById('letter-body-input').value = '';
+  document.getElementById('letter-dateiso-input').value = '';
+  document.getElementById('pending-pages-note').textContent = '';
+  fromSelect.selectedIndex = 0;
+  pendingLetterPhotos = [];
+  letterForm.classList.remove('show');
+}
+
+document.getElementById('letter-save-btn').addEventListener('click', async () => {
+  if(!requireTokenOrPrompt()) return;
+  const title = document.getElementById('letter-title-input').value.trim() || 'A little letter';
+  const dateISO = document.getElementById('letter-dateiso-input').value;
+  const body = document.getElementById('letter-body-input').value.trim();
+  const from = fromSelect.value;
+
+  const btn = document.getElementById('letter-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+
+  state.letters.push({
+    id: `letter-${Date.now()}`,
+    from,
+    title,
+    dateISO,
+    date: dateISO ? formatDateDisplay(dateISO) : 'Undated',
+    body,
+    photos: pendingLetterPhotos
+  });
+
+  try{
+    await saveSiteData();
+    showToast('Letter saved.');
+    resetLetterForm();
+    renderLetters();
+  } catch(err){
+    state.letters.pop();
+    showToast('Could not save: ' + err.message, true);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Add letter';
+  }
+});
+
+document.getElementById('letter-cancel-btn').addEventListener('click', resetLetterForm);
+
+// ---------------------------------------------------------------
+// Series & movies watched together
+// ---------------------------------------------------------------
+const seriesGrid = document.getElementById('series-grid');
+const seriesForm = document.getElementById('series-form');
+let editingSeriesId = null;
+
+function starsHTML(rating, filledClass){
+  let out = '';
+  for(let i=1;i<=5;i++){ out += `<span class="${i<=rating?filledClass:''}">★</span>`; }
+  return out;
+}
+
+function renderSeries(){
+  seriesGrid.innerHTML = '';
+
+  state.series.forEach((s) => {
+    const card = document.createElement('div');
+    card.className = 'series-card';
+
+    const coverHTML = s.cover
+      ? `<img src="${s.cover}" alt="${s.name}">`
+      : `<span>🎬</span>no cover yet`;
+
+    const reviewHTML = s.review
+      ? `<div class="series-review">${s.review}</div>`
+      : '';
+
+    card.innerHTML = `
+      <button class="series-remove" data-series-remove="${s.id}" title="Delete">&times;</button>
+      <button class="series-edit" data-series-edit="${s.id}" title="Rate / edit">✎</button>
+      <div class="series-cover">${coverHTML}</div>
+      <div class="series-info">
+        <div class="series-name">${s.name}</div>
+        <div class="series-eps">${s.episodes} episode${s.episodes === 1 ? '' : 's'}</div>
+        <div class="dual-stars">
+          <div class="row"><span class="who-label">${CONFIG.names.you}</span><span class="stars">${starsHTML(s.myRating||0,'filled')}</span></div>
+          <div class="row"><span class="who-label">${CONFIG.names.her}</span><span class="stars">${starsHTML(s.herRating||0,'filled')}</span></div>
+        </div>
+        ${reviewHTML}
+        ${s.review ? `<div class="series-hint">tap to open / close</div>` : ''}
+      </div>
+    `;
+
+    card.addEventListener('click', (e) => {
+      if(e.target.closest('[data-series-remove]') || e.target.closest('[data-series-edit]')){
+        e.stopPropagation();
+        return;
+      }
+      if(s.review) card.classList.toggle('open');
+    });
+
+    card.querySelector('[data-series-remove]').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      state.series = state.series.filter(item => item.id !== s.id);
+      try{
+        await saveSiteData();
+        showToast('Removed.');
+      } catch(err){ showToast('Could not save: ' + err.message, true); }
+      renderSeries();
+    });
+
+    card.querySelector('[data-series-edit]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openSeriesFormForEdit(s);
+    });
+
+    seriesGrid.appendChild(card);
+  });
+
+  const addCard = document.createElement('div');
+  addCard.className = 'add-series-card';
+  addCard.innerHTML = `<span class="plus">+</span>Add a series / movie`;
+  addCard.addEventListener('click', () => {
+    editingSeriesId = null;
+    resetSeriesFormFields();
+    document.getElementById('series-save-btn').textContent = 'Add';
+    seriesForm.classList.add('show');
+    seriesForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+  seriesGrid.appendChild(addCard);
+}
+
+// ---- dual star pickers ----
+let myRatingPick = 0, herRatingPick = 0;
+const starPickerMine = document.getElementById('series-star-picker-mine');
+const starPickerHers = document.getElementById('series-star-picker-hers');
+function paintStars(container, rating){
+  container.querySelectorAll('span').forEach(s => {
+    s.classList.toggle('filled', parseInt(s.dataset.star, 10) <= rating);
+  });
+}
+starPickerMine.querySelectorAll('span').forEach(s => {
+  s.addEventListener('click', () => {
+    myRatingPick = parseInt(s.dataset.star, 10);
+    paintStars(starPickerMine, myRatingPick);
+  });
+});
+starPickerHers.querySelectorAll('span').forEach(s => {
+  s.addEventListener('click', () => {
+    herRatingPick = parseInt(s.dataset.star, 10);
+    paintStars(starPickerHers, herRatingPick);
+  });
+});
+
+let pendingCoverURL = '';
+document.getElementById('series-cover-input').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  if(!requireTokenOrPrompt()){ e.target.value = ''; return; }
+  const label = document.getElementById('series-cover-upload-label');
+  label.classList.add('disabled');
+  const originalText = label.firstChild.textContent;
+  label.firstChild.textContent = '⏳ Uploading...';
+  try{
+    pendingCoverURL = await uploadImageToGitHub(file);
+    label.firstChild.textContent = '✓ Cover uploaded';
+  } catch(err){
+    showToast('Cover upload failed: ' + err.message, true);
+    label.firstChild.textContent = originalText;
+  } finally {
+    label.classList.remove('disabled');
+  }
+});
+
+function openSeriesFormForEdit(s){
+  editingSeriesId = s.id;
+  document.getElementById('series-name-input').value = s.name;
+  document.getElementById('series-eps-input').value = s.episodes;
+  document.getElementById('series-review-input').value = s.review || '';
+  myRatingPick = s.myRating || 0;
+  herRatingPick = s.herRating || 0;
+  paintStars(starPickerMine, myRatingPick);
+  paintStars(starPickerHers, herRatingPick);
+  pendingCoverURL = s.cover || '';
+  document.getElementById('series-save-btn').textContent = 'Save changes';
+  seriesForm.classList.add('show');
+  seriesForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function resetSeriesFormFields(){
+  document.getElementById('series-name-input').value = '';
+  document.getElementById('series-eps-input').value = '';
+  document.getElementById('series-review-input').value = '';
+  document.getElementById('series-cover-input').value = '';
+  myRatingPick = 0; herRatingPick = 0;
+  paintStars(starPickerMine, 0);
+  paintStars(starPickerHers, 0);
+  pendingCoverURL = '';
+}
+function resetSeriesForm(){
+  resetSeriesFormFields();
+  editingSeriesId = null;
+  seriesForm.classList.remove('show');
+}
+
+document.getElementById('series-save-btn').addEventListener('click', async () => {
+  if(!requireTokenOrPrompt()) return;
+  const name = document.getElementById('series-name-input').value.trim();
+  const episodes = parseInt(document.getElementById('series-eps-input').value, 10) || 0;
+  const review = document.getElementById('series-review-input').value.trim();
+  if(!name){ showToast('Give it a name first.', true); return; }
+
+  const btn = document.getElementById('series-save-btn');
+  btn.disabled = true;
+  const wasEditing = !!editingSeriesId;
+  btn.textContent = 'Saving...';
+
+  let snapshot = JSON.stringify(state.series);
+
+  if(editingSeriesId){
+    state.series = state.series.map(item => item.id === editingSeriesId
+      ? { ...item, name, episodes, review, myRating: myRatingPick, herRating: herRatingPick, cover: pendingCoverURL }
+      : item);
+  } else {
+    state.series.push({
+      id: `series-${Date.now()}`,
+      name, episodes, review,
+      myRating: myRatingPick,
+      herRating: herRatingPick,
+      cover: pendingCoverURL
+    });
+  }
+
+  try{
+    await saveSiteData();
+    showToast(wasEditing ? 'Changes saved.' : 'Added and saved.');
+    resetSeriesForm();
+    renderSeries();
+  } catch(err){
+    state.series = JSON.parse(snapshot);
+    showToast('Could not save: ' + err.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = wasEditing ? 'Save changes' : 'Add';
+  }
+});
+
+document.getElementById('series-cancel-btn').addEventListener('click', resetSeriesForm);
+
+// ---------------------------------------------------------------
 // Countdowns — always counts to the NEXT occurrence of the date's month/day
+// ---------------------------------------------------------------
 function nextOccurrence(dateStr){
   const d = new Date(dateStr + "T00:00:00");
   const now = new Date();
@@ -492,13 +1375,27 @@ for(let i=0;i<18;i++){
 }
 
 // Scroll spy for nav dots
-const sections = ['top','letters','countdowns','closing'].map(id => document.getElementById(id));
+const sections = ['top','letters','series','countdowns','closing'].map(id => document.getElementById(id));
 const dots = document.querySelectorAll('.navdots a');
 window.addEventListener('scroll', () => {
   let idx = 0;
   sections.forEach((s,i) => { if(window.scrollY + window.innerHeight/2 >= s.offsetTop) idx = i; });
   dots.forEach((d,i) => d.classList.toggle('active', i===idx));
 });
+
+// ---------------------------------------------------------------
+// Boot: load data from GitHub, then render everything
+// ---------------------------------------------------------------
+(async function boot(){
+  refreshGhStatusUI();
+  if(!ghConfigured()){
+    showToast('Edit CONFIG.github (owner/repo) in the code before this can save to GitHub.', true);
+  }
+  state = await loadSiteData();
+  renderLetters();
+  renderSeries();
+  hideLoadingOverlay();
+})();
 </script>
 </body>
 </html>
