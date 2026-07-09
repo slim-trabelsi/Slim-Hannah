@@ -1,17 +1,6 @@
 {
   "letters": [
     {
-      "id": "letter-1",
-      "date": "Sunday",
-      "dateISO": "2026-06-21",
-      "from": "Slim",
-      "title": "A little letter",
-      "photos": [
-        "https://raw.githubusercontent.com/slim-trabelsi/Slim-Hannah/main/images/1783590241546-11.jpg"
-      ],
-      "body": ""
-    },
-    {
       "id": "letter-1783589959600",
       "from": "Slim",
       "title": "First Letter",
