@@ -8,6 +8,18 @@
       "title": "A little letter",
       "photos": [],
       "body": ""
+    },
+    {
+      "id": "letter-1783589959600",
+      "from": "Slim",
+      "title": "First Letter",
+      "dateISO": "2026-07-04",
+      "date": "samedi 4 juillet 2026",
+      "body": "",
+      "photos": [
+        "https://raw.githubusercontent.com/slim-trabelsi/Slim-Hannah/main/images/1783589952757-1.jpg",
+        "https://raw.githubusercontent.com/slim-trabelsi/Slim-Hannah/main/images/1783589955653-2.jpg"
+      ]
     }
   ],
   "series": [
