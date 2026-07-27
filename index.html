@@ -225,6 +225,70 @@
   }
   .section-title{ font-size:clamp(1.8rem,4vw,2.6rem); margin-top:2px; margin-bottom:44px; }
 
+  /* ---------- chat radar (availability) ---------- */
+  #availability{ background:var(--paper); border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+  .radar-live{
+    background:var(--bg); border:1px solid var(--line); border-radius:20px;
+    padding:26px 30px; display:flex; align-items:center; gap:20px;
+    box-shadow:var(--shadow); max-width:600px; margin:0 auto 40px; transition:.3s;
+  }
+  .radar-heart{ font-size:2.5rem; flex:none; color:var(--line); transition:.3s; line-height:1; }
+  .radar-heart.good{ color:var(--rose); animation:pulse 1.3s ease-in-out infinite; }
+  .radar-heart.busy{ color:var(--gold); }
+  .radar-heart.meh{ color:var(--ink-soft); opacity:0.7; }
+  .radar-text{ font-family:'Fraunces', serif; font-size:1.12rem; color:var(--rose-deep); font-weight:600; line-height:1.35; }
+  .radar-sub{ margin-top:5px; font-size:0.86rem; color:var(--ink-soft); }
+  .radar-next{ margin-top:6px; font-size:0.8rem; color:var(--gold); font-weight:600; }
+
+  .radar-toggle{ display:flex; justify-content:center; gap:8px; margin-bottom:20px; }
+  .radar-toggle button{
+    padding:8px 16px; border-radius:20px; border:1px solid var(--line); background:var(--bg);
+    color:var(--ink-soft); font-size:0.8rem; font-weight:600; cursor:pointer; transition:.2s;
+    font-family:'Karla',sans-serif;
+  }
+  .radar-toggle button.active{ background:var(--rose); color:#fff; border-color:var(--rose); }
+
+  .radar-legend{
+    display:flex; flex-wrap:wrap; gap:14px; justify-content:center; margin-bottom:20px;
+    font-size:0.76rem; color:var(--ink-soft);
+  }
+  .radar-legend .swatch{
+    width:11px; height:11px; border-radius:3px; display:inline-block; margin-right:5px; vertical-align:middle;
+  }
+  .sw-class{ background:var(--rose-deep); }
+  .sw-lunch{ background:var(--gold); }
+  .sw-good{ background:#DCF2E3; border:1px solid #B7E0C6; }
+  .sw-muted{ background:rgba(140,45,66,0.08); }
+
+  .radar-scroll{ overflow-x:auto; padding-bottom:8px; }
+  .radar-grid{
+    display:grid; grid-template-columns:60px repeat(7, minmax(44px,1fr)); gap:3px; min-width:580px;
+  }
+  .radar-colhead{
+    font-size:0.7rem; text-align:center; font-weight:700; color:var(--rose-deep);
+    padding-bottom:6px; letter-spacing:0.04em;
+  }
+  .radar-rowlabel{
+    font-size:0.68rem; color:var(--ink-soft); display:flex; align-items:center;
+    justify-content:flex-end; padding-right:6px; font-weight:600; white-space:nowrap;
+  }
+  .radar-cell{
+    aspect-ratio:1/0.82; border-radius:6px; display:flex; align-items:center; justify-content:center;
+    font-size:0.6rem; font-weight:700; cursor:pointer; transition:.15s; color:#fff; text-align:center;
+  }
+  .radar-cell:hover{ transform:scale(1.15); z-index:2; box-shadow:var(--shadow); }
+  .radar-cell.class{ background:var(--rose-deep); }
+  .radar-cell.lunch{ background:var(--gold); color:var(--ink); }
+  .radar-cell.good{ background:#DCF2E3; color:#2E7D4F; border:1px solid #B7E0C6; }
+  .radar-cell.muted{ background:rgba(140,45,66,0.07); color:var(--ink-soft); font-weight:400; }
+  .radar-caption{
+    text-align:center; margin-top:22px; font-family:'Caveat',cursive; font-size:1.15rem;
+    color:var(--rose-deep); max-width:540px; margin-left:auto; margin-right:auto;
+  }
+  @media (max-width:560px){
+    .radar-live{ flex-direction:column; text-align:center; padding:22px; }
+  }
+
   /* ---------- letters ---------- */
   #letters{ background:var(--paper); border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
   .letters-grid{ display:grid; gap:22px; }
@@ -456,6 +520,7 @@
 
 <nav class="navdots">
   <a href="#top" class="active"></a>
+  <a href="#availability"></a>
   <a href="#letters"></a>
   <a href="#series"></a>
   <a href="#countdowns"></a>
@@ -492,6 +557,40 @@
       <div class="num" id="letters-count">0</div>
       <div class="label">letters archived</div>
     </div>
+  </div>
+</section>
+
+<section id="availability">
+  <div class="section-inner">
+    <div class="kicker">the eternal long-distance question</div>
+    <h2 class="section-title">Are We Both Free Right Now?</h2>
+
+    <div class="radar-live" id="radar-live">
+      <div class="radar-heart" id="radar-heart">♥</div>
+      <div>
+        <div class="radar-text" id="radar-text">Checking the schedule…</div>
+        <div class="radar-sub" id="radar-sub"></div>
+        <div class="radar-next" id="radar-next"></div>
+      </div>
+    </div>
+
+    <div class="radar-toggle">
+      <button id="radar-tz-mine" class="active">Show my time (Tunis)</button>
+      <button id="radar-tz-hers">Show her time (Manila)</button>
+    </div>
+
+    <div class="radar-legend">
+      <span><span class="swatch sw-class"></span>she's in class</span>
+      <span><span class="swatch sw-lunch"></span>lunch break</span>
+      <span><span class="swatch sw-good"></span>both free & awake 💬</span>
+      <span><span class="swatch sw-muted"></span>free, but one of us is probably asleep</span>
+    </div>
+
+    <div class="radar-scroll">
+      <div class="radar-grid" id="radar-grid"></div>
+    </div>
+
+    <p class="radar-caption">funny enough — her morning classes land right in the middle of your sleep, so you're barely missing each other on purpose 😌</p>
   </div>
 </section>
 
@@ -881,6 +980,197 @@ function updateClocks(){
 }
 updateClocks();
 setInterval(updateClocks, 1000);
+
+// ---------------------------------------------------------------
+// Chat Radar — Hannah's CNU class schedule vs. real free/awake time
+// (all class times below are in HER local time, Asia/Manila)
+// ---------------------------------------------------------------
+const HER_CLASSES = [
+  // Mon (F2F)
+  { day:1, start:7.5,  end:9,    code:'GE8',   name:'Contemporary World' },
+  { day:1, start:10.5, end:12,   code:'GE7',   name:'Readings in Philippine History' },
+  { day:1, start:12,   end:13.5, code:'',      name:'Lunch break', lunch:true },
+  { day:1, start:13.5, end:15,   code:'GE9',   name:'Arts Appreciation' },
+  // Wed (same load, online)
+  { day:3, start:7.5,  end:9,    code:'GE8',   name:'Contemporary World (online)' },
+  { day:3, start:10.5, end:12,   code:'GE7',   name:'Readings in Philippine History (online)' },
+  { day:3, start:12,   end:13.5, code:'',      name:'Lunch break', lunch:true },
+  { day:3, start:13.5, end:15,   code:'GE9',   name:'Arts Appreciation (online)' },
+  // Tue (F2F)
+  { day:2, start:12,   end:13.5, code:'Educ14', name:'Trends & Issues in Education' },
+  { day:2, start:13.5, end:15,   code:'GE11',   name:'Life & Works of Rizal' },
+  { day:2, start:15,   end:16.5, code:'GE12',   name:'Science, Tech & Society' },
+  // Thu (same load, online)
+  { day:4, start:12,   end:13.5, code:'Educ14', name:'Trends & Issues in Education (online)' },
+  { day:4, start:13.5, end:15,   code:'GE11',   name:'Life & Works of Rizal (online)' },
+  { day:4, start:15,   end:16.5, code:'GE12',   name:'Science, Tech & Society (online)' },
+  // Fri
+  { day:5, start:16.5, end:19.5, code:'GE10',  name:'Panitikang Filipino' },
+];
+const DAY_ORDER = [1,2,3,4,5,6,0];
+const DAY_LABEL = { 0:'SUN', 1:'MON', 2:'TUE', 3:'WED', 4:'THU', 5:'FRI', 6:'SAT' };
+const MANILA_ASLEEP_START = 0, MANILA_ASLEEP_END = 6;   // she's likely asleep 12am–6am her time
+const TUNIS_ASLEEP_START = 1, TUNIS_ASLEEP_END = 8;     // you're likely asleep 1am–8am your time
+
+function mod(n, m){ return ((n % m) + m) % m; }
+
+function weekMinutesNow(tz, now){
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, weekday:'short', hour:'2-digit', minute:'2-digit', hour12:false
+  }).formatToParts(now);
+  const map = {}; parts.forEach(p => map[p.type] = p.value);
+  const wd = { Sun:0, Mon:1, Tue:2, Wed:3, Thu:4, Fri:5, Sat:6 };
+  let hour = parseInt(map.hour, 10); if(hour === 24) hour = 0;
+  return wd[map.weekday]*1440 + hour*60 + parseInt(map.minute, 10);
+}
+
+// Weekly-clock offset between Manila and Tunis, in minutes (derived live, not hardcoded)
+function currentOffsetMinutes(){
+  const now = new Date();
+  return mod(weekMinutesNow(TZ_B, now) - weekMinutesNow(TZ_A, now), 7*1440);
+}
+
+function classAt(manilaDay, manilaHour){
+  return HER_CLASSES.find(b => b.day === manilaDay && manilaHour < b.end && manilaHour + 1 > b.start);
+}
+
+function formatHM(totalMin){
+  totalMin = mod(totalMin, 1440);
+  let h = Math.floor(totalMin/60), m = totalMin%60;
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  let h12 = h % 12; if(h12 === 0) h12 = 12;
+  return `${h12}:${m.toString().padStart(2,'0')} ${ampm}`;
+}
+function formatDuration(mins){
+  if(mins < 60) return `${mins}m`;
+  const h = Math.floor(mins/60), m = mins%60;
+  return m ? `${h}h ${m}m` : `${h}h`;
+}
+
+function statusAtManilaMinute(weekMin, offset){
+  weekMin = mod(weekMin, 7*1440);
+  const day = Math.floor(weekMin/1440);
+  const hourFloat = (weekMin % 1440)/60;
+  const block = classAt(day, hourFloat);
+  const tunisWeekMin = mod(weekMin - offset, 7*1440);
+  const tunisHour = (tunisWeekMin % 1440)/60;
+  const tunisAsleep = tunisHour >= TUNIS_ASLEEP_START && tunisHour < TUNIS_ASLEEP_END;
+  const manilaAsleep = hourFloat >= MANILA_ASLEEP_START && hourFloat < MANILA_ASLEEP_END;
+  return { block, tunisAsleep, manilaAsleep, day, hourFloat, tunisWeekMin };
+}
+
+function renderRadarLive(){
+  const offset = currentOffsetMinutes();
+  const nowManilaMin = weekMinutesNow(TZ_B, new Date());
+  const st = statusAtManilaMinute(nowManilaMin, offset);
+
+  const heartEl = document.getElementById('radar-heart');
+  const textEl = document.getElementById('radar-text');
+  const subEl = document.getElementById('radar-sub');
+  const nextEl = document.getElementById('radar-next');
+  heartEl.className = 'radar-heart';
+  nextEl.textContent = '';
+
+  function nextGoodIn(){
+    for(let m = 15; m <= 7*1440; m += 15){
+      const s = statusAtManilaMinute(nowManilaMin + m, offset);
+      if(!s.block && !s.tunisAsleep && !s.manilaAsleep) return m;
+    }
+    return null;
+  }
+
+  if(st.manilaAsleep){
+    heartEl.classList.add('meh');
+    textEl.textContent = "Hannah's probably asleep 😴";
+    subEl.textContent = `It's ${formatHM(nowManilaMin % 1440)} in Manila right now.`;
+  } else if(st.block){
+    heartEl.classList.add('busy');
+    textEl.textContent = st.block.lunch ? "Lunch break for Hannah 🍜" : `In class — ${st.block.code} · ${st.block.name}`;
+    const endManilaMin = Math.floor(st.day*1440 + st.block.end*60);
+    const endTunisMin = mod(endManilaMin - offset, 7*1440) % 1440;
+    subEl.textContent = `Free again at ${formatHM(st.block.end*60)} her time (${formatHM(endTunisMin)} yours).`;
+  } else if(st.tunisAsleep){
+    heartEl.classList.add('meh');
+    textEl.textContent = "She's free — but you're probably asleep 😴";
+    subEl.textContent = `It's ${formatHM(st.tunisWeekMin % 1440)} for you right now.`;
+  } else {
+    heartEl.classList.add('good');
+    textEl.textContent = "You can both chat right now! 💬";
+    subEl.textContent = "Green light — go say hi.";
+  }
+
+  if(!(!st.block && !st.tunisAsleep && !st.manilaAsleep)){
+    const mins = nextGoodIn();
+    if(mins !== null) nextEl.textContent = `Next good window in about ${formatDuration(mins)}`;
+  }
+}
+
+let radarShowMine = true;
+function renderRadarGrid(){
+  const offset = currentOffsetMinutes();
+  const grid = document.getElementById('radar-grid');
+  grid.innerHTML = '';
+
+  // corner + day headers
+  grid.appendChild(document.createElement('div'));
+  DAY_ORDER.forEach(d => {
+    const h = document.createElement('div');
+    h.className = 'radar-colhead';
+    h.textContent = DAY_LABEL[d];
+    grid.appendChild(h);
+  });
+
+  for(let hour = 6; hour <= 23; hour++){
+    const tunisHourWeekMin = mod(hour*60 - offset, 1440);
+    const label = document.createElement('div');
+    label.className = 'radar-rowlabel';
+    label.textContent = radarShowMine ? formatHM(tunisHourWeekMin) : formatHM(hour*60);
+    grid.appendChild(label);
+
+    DAY_ORDER.forEach(d => {
+      const st = statusAtManilaMinute(d*1440 + hour*60, offset);
+      const cell = document.createElement('div');
+      let cls = 'good', text = '♥', title = '';
+      const yoursHM = formatHM(mod(hour*60 - offset, 1440));
+      const hersHM = formatHM(hour*60);
+      if(st.block && st.block.lunch){
+        cls = 'lunch'; text = 'lunch';
+        title = `${DAY_LABEL[d]} ${hersHM} her time (${yoursHM} yours) — lunch break`;
+      } else if(st.block){
+        cls = 'class'; text = st.block.code;
+        title = `${DAY_LABEL[d]} ${hersHM} her time (${yoursHM} yours) — ${st.block.name}`;
+      } else if(st.tunisAsleep){
+        cls = 'muted'; text = '';
+        title = `${DAY_LABEL[d]} ${hersHM} her time (${yoursHM} yours) — she's free, you're probably asleep`;
+      } else {
+        cls = 'good'; text = '♥';
+        title = `${DAY_LABEL[d]} ${hersHM} her time (${yoursHM} yours) — good time to chat!`;
+      }
+      cell.className = 'radar-cell ' + cls;
+      cell.textContent = text;
+      cell.title = title;
+      cell.addEventListener('click', () => showToast(title));
+      grid.appendChild(cell);
+    });
+  }
+}
+
+document.getElementById('radar-tz-mine').addEventListener('click', () => {
+  radarShowMine = true;
+  document.getElementById('radar-tz-mine').classList.add('active');
+  document.getElementById('radar-tz-hers').classList.remove('active');
+  renderRadarGrid();
+});
+document.getElementById('radar-tz-hers').addEventListener('click', () => {
+  radarShowMine = false;
+  document.getElementById('radar-tz-hers').classList.add('active');
+  document.getElementById('radar-tz-mine').classList.remove('active');
+  renderRadarGrid();
+});
+
+renderRadarLive();
+renderRadarGrid();
+setInterval(renderRadarLive, 30000);
 
 // ---- Lightbox ----
 const lightbox = document.getElementById('lightbox');
@@ -1375,7 +1665,7 @@ for(let i=0;i<18;i++){
 }
 
 // Scroll spy for nav dots
-const sections = ['top','letters','series','countdowns','closing'].map(id => document.getElementById(id));
+const sections = ['top','availability','letters','series','countdowns','closing'].map(id => document.getElementById(id));
 const dots = document.querySelectorAll('.navdots a');
 window.addEventListener('scroll', () => {
   let idx = 0;
