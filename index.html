@@ -1082,7 +1082,7 @@ function renderRadarLive(){
   if(st.manilaAsleep){
     heartEl.classList.add('meh');
     textEl.textContent = "Hannah's probably asleep 😴";
-    subEl.textContent = `It's ${formatHM(nowManilaMin % 1440)} in Manila right now.`;
+    subEl.textContent = `It's ${formatHM(nowManilaMin % 1440)} in Cebu right now.`;
   } else if(st.block){
     heartEl.classList.add('busy');
     textEl.textContent = st.block.lunch ? "Lunch break for Hannah 🍜" : `In class — ${st.block.code} · ${st.block.name}`;
